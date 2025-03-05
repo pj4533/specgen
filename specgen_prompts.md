@@ -279,14 +279,16 @@ We want a bit of flair in our console output.
 ```text
 Now let's create the main loop. We’ll:
 
-1. Print a welcome message in color and with emoji.
-2. Prompt the user for their idea with `readLine()`.
+1. Print a welcome message in color and with emoji: "Welcome to specgen! 💡💻"
+2. Prompt the user for their idea with `readLine()`. "Enter your idea:
+  >"
 3. Send an initial message to GPT-4o: 
 
-   "Ask me one question at a time so we can develop a thorough, step-by-step spec for this idea..."
+   "Ask me one question at a time so we can develop a thorough, step-by-step spec for this idea. Each question should build on my previous answers, and our end goal is to have a detailed specification I can hand off to a developer. Let’s do this iteratively and dig into every relevant detail. Remember, only one question at a time. Here's the idea: <User Idea>"
    
 4. Print the response from GPT as a “question” with color or emoji.
-5. Prompt the user to answer. 
+5. Prompt the user to answer: 💬 [1;32mAnswer (or /finish to generate spec)[0m
+  >
 6. Repeat until the user types `/finish`.
 
 Let's do the following changes in `SpecGenCommand.run()`:
