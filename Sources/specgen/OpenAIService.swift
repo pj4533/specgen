@@ -116,9 +116,12 @@ struct OpenAIService {
         verboseLog("Preparing request to OpenAI API", isVerbose: isVerbose)
         
         if isVerbose {
-            verboseLog("Sending messages:", isVerbose: true)
+            verboseLog("Sending to OpenAI API endpoint: \(endpoint)", isVerbose: true)
+            verboseLog("Using model: \(model)", isVerbose: true)
+            verboseLog("Message count: \(messages.count)", isVerbose: true)
             for (index, message) in messages.enumerated() {
-                verboseLog("  [\(index)] \(message.role): \(message.content.prefix(50))...", isVerbose: true)
+                let roleEmoji = message.role == "user" ? "👤" : "🤖"
+                verboseLog("\(roleEmoji) Message [\(index)] \(message.role): \(message.content.prefix(50))...", isVerbose: true)
             }
         }
         
@@ -138,13 +141,25 @@ struct OpenAIService {
         
         // Encode the request body
         do {
-            request.httpBody = try JSONEncoder().encode(requestBody)
+            let encoder = JSONEncoder()
+            if isVerbose {
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            }
+            
+            let requestData = try encoder.encode(requestBody)
+            request.httpBody = requestData
+            
+            if isVerbose {
+                if let requestJson = String(data: requestData, encoding: .utf8) {
+                    verboseLog("Request JSON (first 500 chars):\n\(requestJson.prefix(500))...", isVerbose: true)
+                }
+            }
         } catch {
             verboseLog("Failed to encode request: \(error)", isVerbose: isVerbose)
             throw OpenAIServiceError.requestFailed(error)
         }
         
-        verboseLog("Sending request to OpenAI API", isVerbose: isVerbose)
+        verboseLog("Sending request to OpenAI API endpoint", isVerbose: isVerbose)
         
         // Send the request
         let (data, response) = try await URLSession.shared.data(for: request)

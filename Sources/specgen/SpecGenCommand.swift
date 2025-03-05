@@ -10,6 +10,11 @@ struct SpecGenCommand: ParsableCommand {
     var verbose = false
 
     func run() throws {
+        // Print verbose flag status when it's enabled
+        if verbose {
+            print("🔊 Verbose logging enabled")
+        }
+        
         // Create a Task to execute our async code
         let semaphore = DispatchSemaphore(value: 0)
         var taskError: Error?
@@ -102,6 +107,7 @@ struct SpecGenCommand: ParsableCommand {
                 let prompt = formatMessagesForPrompt(messages)
                 
                 // Send the prompt to OpenAI API
+                verboseLog("Sending conversation with \(messages.count) messages to OpenAI", isVerbose: verbose)
                 let response = try await openAIService.sendMessage(prompt, isVerbose: verbose)
                 
                 // Add the response to the message history
