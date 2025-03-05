@@ -91,32 +91,18 @@ struct SpecGenCommand: ParsableCommand {
             questionCount += 1
             
             // Show a spinner while waiting for the AI response
-            let questionSpinner = Spinner(message: "Thinking about question #\(questionCount)... (simulated in test mode)")
+            let questionSpinner = Spinner(message: "Thinking about question #\(questionCount)...")
             questionSpinner.start()
-            
-            // Add a small delay to simulate API call
-            try await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
             
             do {
                 // Call the OpenAI service
                 verboseLog("Sending message to OpenAI API", isVerbose: verbose)
                 
                 // Convert messages array to a single prompt for simplicity in this implementation
-                // In a full implementation, we would use a proper Chat API with history
                 let prompt = formatMessagesForPrompt(messages)
                 
-                // TESTING ONLY: Simulate a response to avoid API calls while testing the UI flow
-                let response: String
-                if questionCount == 1 {
-                    response = "What is the primary goal of your idea in 1-2 sentences?"
-                } else if questionCount == 2 {
-                    response = "Who is the target audience or user for this idea?"
-                } else {
-                    response = "What are the key features you envision for your idea?"
-                }
-                
-                // UNCOMMENT THIS FOR REAL API CALLS:
-                // let response = try await openAIService.sendMessage(prompt, isVerbose: verbose)
+                // Send the prompt to OpenAI API
+                let response = try await openAIService.sendMessage(prompt, isVerbose: verbose)
                 
                 // Add the response to the message history
                 messages.append((role: "assistant", content: response))
@@ -159,8 +145,8 @@ struct SpecGenCommand: ParsableCommand {
         ConsoleUI.printInfo("Conversation complete! Ready to generate the final spec.")
     }
     
-    /// Formats the conversation history into a single prompt
-    /// This is a simplified approach - in a full implementation, we'd use the Chat API properly
+    /// Formats the conversation history into a single prompt string
+    /// This creates a text format that our OpenAIService can parse into proper message objects
     private func formatMessagesForPrompt(_ messages: [(role: String, content: String)]) -> String {
         var formattedPrompt = ""
         
@@ -174,6 +160,7 @@ struct SpecGenCommand: ParsableCommand {
             }
         }
         
+        verboseLog("Formatted conversation has \(messages.count) messages", isVerbose: verbose)
         return formattedPrompt
     }
 }

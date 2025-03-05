@@ -70,6 +70,7 @@ struct OpenAIRequest: Encodable {
     let model: String
     let messages: [Message]
     let temperature: Double
+    let max_tokens: Int?
     
     struct Message: Encodable {
         let role: String
@@ -83,19 +84,50 @@ struct OpenAIService {
     private let model = "gpt-4o"
     
     func sendMessage(_ text: String, isVerbose: Bool = false) async throws -> String {
+        // Parse the conversation history from the text
+        let messages = parseConversationToMessages(text)
+        return try await sendMessageWithHistory(messages, isVerbose: isVerbose)
+    }
+    
+    private func parseConversationToMessages(_ text: String) -> [OpenAIRequest.Message] {
+        // Split the conversation by User: and Assistant: prefixes
+        let lines = text.split(separator: "\n\n")
+        var messages: [OpenAIRequest.Message] = []
+        
+        for line in lines {
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedLine.starts(with: "User: ") {
+                let content = String(trimmedLine.dropFirst(6))
+                messages.append(OpenAIRequest.Message(role: "user", content: content))
+            } else if trimmedLine.starts(with: "Assistant: ") {
+                let content = String(trimmedLine.dropFirst(11))
+                messages.append(OpenAIRequest.Message(role: "assistant", content: content))
+            }
+        }
+        
+        return messages
+    }
+    
+    func sendMessageWithHistory(_ messages: [OpenAIRequest.Message], isVerbose: Bool = false) async throws -> String {
         guard let url = URL(string: endpoint) else {
             throw OpenAIServiceError.invalidURL
         }
         
         verboseLog("Preparing request to OpenAI API", isVerbose: isVerbose)
         
+        if isVerbose {
+            verboseLog("Sending messages:", isVerbose: true)
+            for (index, message) in messages.enumerated() {
+                verboseLog("  [\(index)] \(message.role): \(message.content.prefix(50))...", isVerbose: true)
+            }
+        }
+        
         // Create the request body
         let requestBody = OpenAIRequest(
             model: model,
-            messages: [
-                OpenAIRequest.Message(role: "user", content: text)
-            ],
-            temperature: 0.7
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 1000
         )
         
         // Create the request
@@ -128,19 +160,48 @@ struct OpenAIService {
         guard 200...299 ~= httpResponse.statusCode else {
             // Try to extract error message from response
             do {
-                let errorResponse = try JSONDecoder().decode([String: String].self, from: data)
-                if let errorMessage = errorResponse["error"] {
-                    throw OpenAIServiceError.apiError(errorMessage)
+                // Debug output the error response
+                if isVerbose {
+                    if let errorString = String(data: data, encoding: .utf8) {
+                        verboseLog("Error response: \(errorString)", isVerbose: true)
+                    }
                 }
+                
+                // Try to decode as OpenAI error format
+                struct OpenAIError: Decodable {
+                    let error: ErrorDetail
+                    
+                    struct ErrorDetail: Decodable {
+                        let message: String
+                        let type: String?
+                        let code: String?
+                    }
+                }
+                
+                let errorResponse = try JSONDecoder().decode(OpenAIError.self, from: data)
+                throw OpenAIServiceError.apiError("\(errorResponse.error.message) (Type: \(errorResponse.error.type ?? "unknown"))")
+            } catch let decodingError as OpenAIServiceError {
+                // If we already created a proper error, rethrow it
+                throw decodingError
             } catch {
-                // If we can't decode the error, just use the status code
-                throw OpenAIServiceError.apiError("HTTP status code: \(httpResponse.statusCode)")
+                // If we can't decode the error, just use the status code and raw data
+                if let errorString = String(data: data, encoding: .utf8)?.prefix(100) {
+                    throw OpenAIServiceError.apiError("HTTP status \(httpResponse.statusCode): \(errorString)...")
+                } else {
+                    throw OpenAIServiceError.apiError("HTTP status code: \(httpResponse.statusCode)")
+                }
             }
-            throw OpenAIServiceError.apiError("HTTP status code: \(httpResponse.statusCode)")
         }
         
         // Decode the response
         do {
+            // Log the raw response for debugging in verbose mode
+            if isVerbose {
+                if let responseString = String(data: data, encoding: .utf8) {
+                    verboseLog("Raw response: \(responseString.prefix(200))...", isVerbose: true)
+                }
+            }
+            
             let decodedResponse = try JSONDecoder().decode(OpenAIResponse.self, from: data)
             
             // Extract the response text
@@ -149,9 +210,17 @@ struct OpenAIService {
             }
             
             verboseLog("Successfully processed response", isVerbose: isVerbose)
+            verboseLog("Token usage - Prompt: \(decodedResponse.usage.promptTokens), Completion: \(decodedResponse.usage.completionTokens), Total: \(decodedResponse.usage.totalTokens)", isVerbose: isVerbose)
+            
             return firstChoice.message.content
         } catch {
             verboseLog("Failed to decode response: \(error)", isVerbose: isVerbose)
+            
+            // Try to provide more context about the error
+            if let responseString = String(data: data, encoding: .utf8) {
+                verboseLog("Response that failed to decode: \(responseString.prefix(200))...", isVerbose: isVerbose)
+            }
+            
             throw OpenAIServiceError.decodingError(error)
         }
     }
