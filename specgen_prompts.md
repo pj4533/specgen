@@ -252,7 +252,7 @@ Next, let's implement the networking layer to talk to GPT-4o.
 1. Create `OpenAIService.swift` in `Sources/specgen/`.
 2. Define a struct `OpenAIService` with a stored property `apiKey: String`.
 3. Add a function `sendMessage(_ text: String) async throws -> String` that:
-   - Constructs a URLRequest for the OpenAI API (fake or real endpoint, but let's be consistent with GPT-4).
+   - Constructs a URLRequest for the OpenAI API (fake or real endpoint, but let's be consistent with GPT-4o).
    - Sets the required headers, including `Authorization: Bearer <apiKey>`.
    - Uses `URLSession.data(for:request:)` (async/await).
    - Decodes the JSON (create a minimal `Response` struct) to extract the text. 
