@@ -69,7 +69,7 @@ struct SpecGenCommand: ParsableCommand {
         
         // Prompt for user's idea
         ConsoleUI.printColored("Enter your idea:", colorCode: ConsoleColor.green)
-        print("  >", terminator: " ")
+        print("> ", terminator: "")
         
         guard let userIdea = readLine(), !userIdea.isEmpty else {
             ConsoleUI.printError("No idea provided. Exiting.")
@@ -122,7 +122,7 @@ struct SpecGenCommand: ParsableCommand {
                 
                 // Prompt for the user's answer
                 ConsoleUI.printColored("💬 Answer (or /finish to generate spec)", colorCode: ConsoleColor.green + ConsoleColor.bold)
-                print("  >", terminator: " ")
+                print("> ", terminator: "")
                 
                 guard let userAnswer = readLine() else {
                     ConsoleUI.printError("Failed to read input. Exiting.")
