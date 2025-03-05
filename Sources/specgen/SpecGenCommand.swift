@@ -6,5 +6,6 @@ struct SpecGenCommand: ParsableCommand {
 
     func run() throws {
         print("Argument parsing works! Verbose? \(verbose)")
+        verboseLog("SpecGen started!", isVerbose: verbose)
     }
 }
