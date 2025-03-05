@@ -147,8 +147,48 @@ struct SpecGenCommand: ParsableCommand {
         
         ConsoleUI.printSuccess("Generating final specification...")
         
-        // We'll handle generating the final spec in the next step
-        ConsoleUI.printInfo("Conversation complete! Ready to generate the final spec.")
+        // Create a spinner for the final spec generation
+        let finalSpecSpinner = Spinner(message: "Compiling your specification document...")
+        finalSpecSpinner.start()
+        
+        // Add the final prompt to the conversation
+        let finalPrompt = "Now that we've wrapped up the brainstorming process, can you compile our findings into a comprehensive, developer-ready specification?"
+        messages.append((role: "user", content: finalPrompt))
+        
+        do {
+            // Send the final request to generate the spec
+            verboseLog("Sending final request to generate specification", isVerbose: verbose)
+            let formattedPrompt = formatMessagesForPrompt(messages)
+            let specContent = try await openAIService.sendMessage(formattedPrompt, isVerbose: verbose)
+            
+            // Generate a timestamped filename
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyyMMdd-HHmmss"
+            let timestamp = dateFormatter.string(from: Date())
+            let fileName = "spec-\(timestamp).md"
+            
+            // Write the specification to a file
+            verboseLog("Writing specification to file: \(fileName)", isVerbose: verbose)
+            let fileURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(fileName)
+            
+            do {
+                try specContent.write(to: fileURL, atomically: true, encoding: .utf8)
+                finalSpecSpinner.succeed(message: "Specification successfully generated!")
+                
+                // Print success message
+                print("")
+                ConsoleUI.printSuccess("✨ Specification saved to: \(fileName)")
+                ConsoleUI.printEmoji("Thank you for using SpecGen! Your developer-ready spec is complete.", emoji: "🚀")
+            } catch {
+                finalSpecSpinner.fail(message: "Failed to save specification file")
+                ConsoleUI.printError("Failed to write specification to file: \(error.localizedDescription)")
+                throw ExitCode.failure
+            }
+        } catch {
+            finalSpecSpinner.fail(message: "Failed to generate specification")
+            ConsoleUI.printError("Failed to generate final specification: \(error.localizedDescription)")
+            throw ExitCode.failure
+        }
     }
     
     /// Formats the conversation history into a single prompt string
