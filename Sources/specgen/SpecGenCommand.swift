@@ -143,6 +143,18 @@ struct SpecGenCommand: ParsableCommand {
                 
                 // Send the prompt to OpenAI API
                 verboseLog("Sending conversation with \(messages.count) messages to OpenAI", isVerbose: verbose)
+                
+                // In verbose mode, display the full message history
+                if verbose {
+                    print("\n🔍 [Verbose] Full conversation history:")
+                    for (index, message) in messages.enumerated() {
+                        let roleEmoji = message.role == "user" ? "👤" : "🤖"
+                        print("🔍 \(roleEmoji) Message [\(index+1)]: \(message.role)")
+                        print("🔍 Content: \(message.content)")
+                        print("🔍 " + String(repeating: "-", count: 50))
+                    }
+                }
+                
                 let response = try await openAIService.sendMessage(prompt, isVerbose: verbose)
                 
                 // Add the response to the message history
@@ -194,6 +206,18 @@ struct SpecGenCommand: ParsableCommand {
             // Send the final request to generate the spec
             verboseLog("Sending final request to generate specification", isVerbose: verbose)
             let formattedPrompt = formatMessagesForPrompt(messages)
+            
+            // In verbose mode, display the full message history for final spec generation
+            if verbose {
+                print("\n🔍 [Verbose] Full conversation history for final spec:")
+                for (index, message) in messages.enumerated() {
+                    let roleEmoji = message.role == "user" ? "👤" : "🤖"
+                    print("🔍 \(roleEmoji) Message [\(index+1)]: \(message.role)")
+                    print("🔍 Content: \(message.content)")
+                    print("🔍 " + String(repeating: "-", count: 50))
+                }
+            }
+            
             let specContent = try await openAIService.sendMessage(formattedPrompt, isVerbose: verbose)
             
             // Generate a timestamped filename
