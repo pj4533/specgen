@@ -4,6 +4,8 @@
 
 SpecGen is a fun CLI tool that uses OpenAI's GPT-4o to help you develop comprehensive specifications through interactive conversation. Perfect for developers, product managers, or anyone who needs to transform vague ideas into actionable plans!
 
+Inspired by [Harper Reed's blog post](https://harper.blog/2025/02/16/my-llm-codegen-workflow-atm/) on using LLMs for specification development.
+
 ## 🎯 Features
 
 - 💡 Interactive Q&A to refine your ideas
@@ -72,11 +74,6 @@ This project uses Swift Package Manager for dependencies:
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- OpenAI for their amazing API
-- All contributors who make this project better!
 
 ---
 
