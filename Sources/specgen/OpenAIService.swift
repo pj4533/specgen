@@ -130,7 +130,7 @@ struct OpenAIService {
             model: model,
             messages: messages,
             temperature: 0.7,
-            max_tokens: 1000
+            max_tokens: 5000
         )
         
         // Create the request
