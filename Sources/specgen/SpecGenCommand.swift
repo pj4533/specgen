@@ -6,8 +6,12 @@ struct SpecGenCommand: ParsableCommand {
         commandName: "specgen",
         abstract: "Generate detailed specifications from user ideas using OpenAI"
     )
+    
     @Flag(name: .shortAndLong, help: "Show verbose logging")
     var verbose = false
+    
+    @Option(name: .shortAndLong, help: "Path to a file containing your idea")
+    var ideaFile: String?
 
     func run() throws {
         // Print verbose flag status when it's enabled
@@ -67,13 +71,44 @@ struct SpecGenCommand: ParsableCommand {
         ConsoleUI.printColored("Welcome to specgen! 💡💻", colorCode: ConsoleColor.cyan + ConsoleColor.bold)
         print("")
         
-        // Prompt for user's idea
-        ConsoleUI.printColored("Enter your idea:", colorCode: ConsoleColor.green)
-        print("> ", terminator: "")
+        // Get user's idea from file or prompt for it
+        var userIdea: String
         
-        guard let userIdea = readLine(), !userIdea.isEmpty else {
-            ConsoleUI.printError("No idea provided. Exiting.")
-            throw ExitCode.failure
+        if let ideaFilePath = ideaFile {
+            let fileSpinner = Spinner(message: "Reading idea from file...")
+            fileSpinner.start()
+            
+            do {
+                let fileURL = URL(fileURLWithPath: ideaFilePath)
+                userIdea = try String(contentsOf: fileURL, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if userIdea.isEmpty {
+                    fileSpinner.fail(message: "Empty idea file")
+                    ConsoleUI.printError("Idea file is empty. Exiting.")
+                    throw ExitCode.failure
+                }
+                
+                fileSpinner.succeed(message: "Idea loaded from file")
+                verboseLog("Idea loaded from file: \(ideaFilePath)", isVerbose: verbose)
+                ConsoleUI.printInfo("Using idea from file: \(ideaFilePath)")
+                ConsoleUI.printColored("Idea: \(userIdea)", colorCode: ConsoleColor.cyan)
+                print("")
+            } catch {
+                fileSpinner.fail(message: "Failed to read idea file")
+                ConsoleUI.printError("Failed to read idea file: \(error.localizedDescription)")
+                throw ExitCode.failure
+            }
+        } else {
+            // Prompt for user's idea
+            ConsoleUI.printColored("Enter your idea:", colorCode: ConsoleColor.green)
+            print("> ", terminator: "")
+            
+            guard let input = readLine(), !input.isEmpty else {
+                ConsoleUI.printError("No idea provided. Exiting.")
+                throw ExitCode.failure
+            }
+            
+            userIdea = input
         }
         
         // Form the initial prompt
